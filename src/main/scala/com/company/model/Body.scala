@@ -6,6 +6,6 @@ case class Body
   width: Double,
   height: Double,
   depth: Double,
-  material: String,
+  material: Material,
   color: String
 )
