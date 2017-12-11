@@ -1,4 +1,4 @@
-id,width,height,depth,material,color
-1,1.0,1.0,1.0,wood,brown
-2,2.0,2.0,2.0,glass,green
-3,3.0,3.0,3.0,metal,blue
+id,width,material,color,d
+1,1.0,wood,brown,2017-01-01 00:00:00
+2,2.0,glass,green,2017-01-01 00:00:00
+3,3.0,metal,blue,2017-01-01 00:00:00

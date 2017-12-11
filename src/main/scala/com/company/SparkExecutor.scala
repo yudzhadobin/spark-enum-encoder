@@ -20,14 +20,17 @@ class SparkExecutor(implicit executionContext: ExecutionContext) {
       .load("src/main/resources/sample.csv")
       .as[Body]
 
-    val result = data.filter(d => d.height > 1)
-    s"total: ${result.count()}"
+    val result = data
+    result.show()
+    s"total: ${result.count()} of ${result.toString()}"
   }
 
   def testLocalDateTime(spark: SparkSession): Future[String] = Future {
-    import LocalDateTimeEncoder.scalaLocalDateTime
+    import com.company.MyEncoders._
     import spark.implicits._
     val ds = Seq(LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now()).toDS()
+      .as[String].cache()
+      .as[LocalDateTime].cache()
     ds.show()
     ds.toString()
   }
