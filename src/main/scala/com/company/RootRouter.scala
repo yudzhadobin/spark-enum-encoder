@@ -25,10 +25,20 @@ class RootRouter(spark: SparkSession)(implicit executionContext: ExecutionContex
         complete(StatusCodes.OK)
       }
     } ~ post {
-      path("spark" / "csv")
+      path("spark" / "csv") {
         onComplete(executor.testCsv(spark)) {
           case Success(s) => complete(StatusCodes.OK, s)
-          case Failure(e) => complete(StatusCodes.InternalServerError, e.toString)
+          case Failure(e) =>
+            logger.error("Error while processing CSV", e)
+            complete(StatusCodes.InternalServerError, e.toString)
+        }
+      } ~ path("spark" / "time") {
+        onComplete(executor.testLocalDateTime(spark)) {
+          case Success(s) => complete(StatusCodes.OK, s)
+          case Failure(e) =>
+            logger.error("Error while processing LocalDateTime", e)
+            complete(StatusCodes.InternalServerError, e.toString)
         }
       }
+    }
 }
