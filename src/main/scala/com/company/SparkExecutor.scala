@@ -11,8 +11,6 @@ import org.apache.spark.sql.{Encoders, SparkSession}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-import scala.collection.JavaConverters._
-
 class SparkExecutor(implicit executionContext: ExecutionContext) {
   def testCsv(spark: SparkSession): Future[String] = Future {
     implicit def bodyEncoder: ExpressionEncoder[Body] = MyEncoders.caseClass(Seq(
@@ -47,7 +45,7 @@ class SparkExecutor(implicit executionContext: ExecutionContext) {
       Metal
     ).toDS().filter(_ == Glass)
     ds.show()
-    ds.toString()
+    ds.collect().toList.toString()
   }
 
   def testLocalDateTime(spark: SparkSession): Future[String] = Future {
@@ -69,6 +67,6 @@ class SparkExecutor(implicit executionContext: ExecutionContext) {
     ).toDS().as[LocalDateTime].filter(_.isBefore(LocalDateTime.parse("2017-01-01T02:02:00.000")))
 
     dss.show()
-    dss.toString()
+    dss.collect().toList.toString()
   }
 }
