@@ -14,6 +14,7 @@ object Materials {
     case "wood" => Wood
     case "metal" => Metal
     case "glass" => Glass
-    case _ => null
+    case null => null
+    case other => throw new IllegalArgumentException(s"'$other' not a Material")
   }
 }

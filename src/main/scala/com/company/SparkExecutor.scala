@@ -4,12 +4,14 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 import com.company.model.Body
-import com.company.model.Colors.Red
+import com.company.model.Colors.{Blue, Red}
 import com.company.model.Materials.{Glass, Metal, Wood}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{Encoders, SparkSession}
 
 import scala.concurrent.{ExecutionContext, Future}
+
+import scala.collection.JavaConverters._
 
 class SparkExecutor(implicit executionContext: ExecutionContext) {
   def testCsv(spark: SparkSession): Future[String] = Future {
@@ -27,11 +29,12 @@ class SparkExecutor(implicit executionContext: ExecutionContext) {
       .as[Body]
     ds.show(false)
 
-    ds.filter(t => t.material == Glass).show(false)
-    ds.filter(t => t.color == Red).show(false)
-
-    ds.show(false)
-    s"total: ${ds.count()} of ${ds.toString()}"
+    ds.filter(_.material == Glass).show(false)
+    ds.filter(_.color == Red).show(false)
+    ds
+      .filter(_.id > 1)
+      .filter(_.color != Blue)
+      .collect().toList.toString()
   }
 
   def testEnum(spark: SparkSession): Future[String] = Future {

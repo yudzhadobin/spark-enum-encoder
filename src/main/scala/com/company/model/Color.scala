@@ -14,6 +14,7 @@ object Colors {
     case "red" => Red
     case "green" => Green
     case "blue" => Blue
-    case _ => null
+    case null => null
+    case other => throw new IllegalArgumentException(s"'$other' not a Color")
   }
 }
