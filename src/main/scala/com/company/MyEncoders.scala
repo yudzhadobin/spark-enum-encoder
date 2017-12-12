@@ -2,7 +2,7 @@ package com.company
 
 import java.time.LocalDateTime
 
-import com.company.model.{Material, Materials}
+import com.company.model.{Color, Colors, Material, Materials}
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke}
@@ -18,7 +18,6 @@ object MyEncoders {
     val clazz = classOf[Material]
     val inputObject = BoundReference(0, ObjectType(clazz), nullable = true)
 
-    // call UTF8String.fromString(<instance>.toString) in Expression way
     val converter = StaticInvoke(
       classOf[UTF8String],
       StringType,
@@ -43,11 +42,38 @@ object MyEncoders {
     )
   }
 
+  implicit def colorEncoder: ExpressionEncoder[Color] = {
+    val clazz = classOf[Color]
+    val inputObject = BoundReference(0, ObjectType(clazz), nullable = true)
+
+    val converter = StaticInvoke(
+      classOf[UTF8String],
+      StringType,
+      "fromString",
+      Invoke(inputObject, "toString", ObjectType(classOf[String])) :: Nil
+    )
+
+    val serializer = CreateNamedStruct(Literal("value") :: converter :: Nil)
+
+    val deserializer: Expression = StaticInvoke(
+      Colors.getClass,
+      ObjectType(clazz),
+      "apply",
+      Invoke(UpCast(GetColumnByOrdinal(0, StringType), StringType, "- root class: com.company.model.Color" :: Nil), "toString", ObjectType(classOf[String])) :: Nil)
+
+    new ExpressionEncoder[Color](
+      serializer.dataType,
+      flat = true,
+      serializer.flatten,
+      deserializer,
+      classTag[Color]
+    )
+  }
+
   implicit def scalaLocalDateTime: ExpressionEncoder[LocalDateTime] = {
     val clazz = classOf[LocalDateTime]
     val inputObject = BoundReference(0, ObjectType(clazz), nullable = true)
 
-    // call UTF8String.fromString(<instance>.toString) in Expression way
     val converter = StaticInvoke(
       classOf[UTF8String],
       StringType,

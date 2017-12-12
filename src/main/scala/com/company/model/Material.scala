@@ -1,7 +1,5 @@
 package com.company.model
 
-
-
 sealed trait Material {
   val name: String
   override def toString: String = name

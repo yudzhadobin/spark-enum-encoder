@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
-import com.company.model.Material
+import com.company.model.{Color, Material}
 import com.company.model.Materials.{Glass, Metal, Wood}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
@@ -13,18 +13,18 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class SparkExecutor(implicit executionContext: ExecutionContext) {
   def testCsv(spark: SparkSession): Future[String] = Future {
-    implicit def bodyEncoder: Encoder[(Int, Double, Material, String)] = ExpressionEncoder.tuple(
+    implicit def bodyEncoder: Encoder[(Int, Double, Material, Color)] = ExpressionEncoder.tuple(
       Encoders.INT.asInstanceOf[ExpressionEncoder[Int]],
       Encoders.DOUBLE.asInstanceOf[ExpressionEncoder[Double]],
       MyEncoders.materialEncoder,
-      Encoders.STRING.asInstanceOf[ExpressionEncoder[String]]
+      MyEncoders.colorEncoder
     )
 
     val ds = spark.read.format("csv")
       .option("header", "true")
       .option("inferSchema", "true")
       .load("src/main/resources/sample.csv")
-      .as[(Int, Double, Material, String)]
+      .as[(Int, Double, Material, Color)]
     ds.show(false)
 
     ds.filter(t => t._3 == Glass).show(false)
