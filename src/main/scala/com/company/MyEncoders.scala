@@ -2,11 +2,11 @@ package com.company
 
 import java.time.LocalDateTime
 
-import com.company.model.{Color, Colors, Material, Materials}
-import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
+import com.company.model._
+import org.apache.spark.sql.catalyst.analysis.{GetColumnByOrdinal, UnresolvedAttribute, UnresolvedExtractValue}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
-import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke}
-import org.apache.spark.sql.catalyst.expressions.{BoundReference, CreateNamedStruct, Expression, Literal, UpCast}
+import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance, StaticInvoke}
+import org.apache.spark.sql.catalyst.expressions.{BoundReference, CreateNamedStruct, CreateStruct, Expression, GetStructField, If, IsNull, Literal, Or, UpCast}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -68,6 +68,71 @@ object MyEncoders {
       deserializer,
       classTag[Color]
     )
+  }
+
+  def caseClass[T <: Product : ClassTag](encoders: Seq[ExpressionEncoder[_]]): ExpressionEncoder[T] = {
+    encoders.foreach(_.assertUnresolved())
+
+    val schema = StructType(encoders.zipWithIndex.map {
+      case (e, i) =>
+        val (dataType, nullable) = if (e.flat) {
+          e.schema.head.dataType -> e.schema.head.nullable
+        } else {
+          e.schema -> true
+        }
+        StructField(s"_${i + 1}", dataType, nullable)
+    })
+
+    val cls = classTag[T].runtimeClass
+
+    val serializer = encoders.zipWithIndex.map { case (enc, index) =>
+      val originalInputObject = enc.serializer.head.collect { case b: BoundReference => b }.head
+      val newInputObject = Invoke(
+        BoundReference(0, ObjectType(cls), nullable = true),
+        s"_${index + 1}",
+        originalInputObject.dataType)
+
+      val newSerializer = enc.serializer.map(_.transformUp {
+        case b: BoundReference if b == originalInputObject => newInputObject
+      })
+
+      if (enc.flat) {
+        newSerializer.head
+      } else {
+        val struct = CreateStruct(newSerializer)
+        val nullCheck = Or(
+          IsNull(newInputObject),
+          Invoke(Literal.fromObject(None), "equals", BooleanType, newInputObject :: Nil))
+        If(nullCheck, Literal.create(null, struct.dataType), struct)
+      }
+    }
+
+    val childrenDeserializers = encoders.zipWithIndex.map { case (enc, index) =>
+      if (enc.flat) {
+        enc.deserializer.transform {
+          case g: GetColumnByOrdinal => g.copy(ordinal = index)
+        }
+      } else {
+        val input = GetColumnByOrdinal(index, enc.schema)
+        val deserialized = enc.deserializer.transformUp {
+          case UnresolvedAttribute(nameParts) =>
+            assert(nameParts.length == 1)
+            UnresolvedExtractValue(input, Literal(nameParts.head))
+          case GetColumnByOrdinal(ordinal, _) => GetStructField(input, ordinal)
+        }
+        If(IsNull(input), Literal.create(null, deserialized.dataType), deserialized)
+      }
+    }
+
+    val deserializer =
+      NewInstance(cls, childrenDeserializers, ObjectType(cls), propagateNull = false)
+
+    new ExpressionEncoder[T](
+      schema,
+      flat = false,
+      serializer,
+      deserializer,
+      ClassTag(cls))
   }
 
   implicit def scalaLocalDateTime: ExpressionEncoder[LocalDateTime] = {
