@@ -2,7 +2,8 @@ package com.company
 
 import java.time.LocalDateTime
 
-import com.company.model.{Body, Material}
+import com.company.model.{Material, Materials}
+import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke}
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, CreateNamedStruct, Expression, Literal}
@@ -28,10 +29,10 @@ object MyEncoders {
     val serializer = CreateNamedStruct(Literal("material") :: converter :: Nil)
 
     val deserializer: Expression = StaticInvoke(
-      clazz,
+      Materials.getClass,
       ObjectType(clazz),
-      "valueOf",
-      Literal("material") :: Nil)
+      "apply",
+      Invoke(GetColumnByOrdinal(0, serializer.dataType), "toString", ObjectType(classOf[String])) :: Nil)
 
     new ExpressionEncoder[Material](
       serializer.dataType,
@@ -60,7 +61,7 @@ object MyEncoders {
       clazz,
       ObjectType(clazz),
       "parse",
-      Literal("ts") :: Nil)
+      Invoke(GetColumnByOrdinal(0, serializer.dataType), "toString", ObjectType(classOf[String])) :: Nil)
 
     new ExpressionEncoder[LocalDateTime](
       serializer.dataType,
