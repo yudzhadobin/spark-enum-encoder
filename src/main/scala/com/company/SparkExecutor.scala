@@ -1,39 +1,36 @@
 package com.company
 
+import java.sql.Timestamp
 import java.time.LocalDateTime
-import java.time.temporal.{ChronoUnit, TemporalUnit}
+import java.time.temporal.ChronoUnit
 
+import com.company.model.Material
 import com.company.model.Materials.{Glass, Metal, Wood}
-import com.company.model.{Body, Material}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.{Encoder, Encoders, SparkSession}
-import org.apache.spark.sql.types.StructType
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SparkExecutor(implicit executionContext: ExecutionContext) {
   def testCsv(spark: SparkSession): Future[String] = Future {
-    implicit def bodyEncoder: Encoder[(Int, Double, Material, String, LocalDateTime)] = ExpressionEncoder.tuple(
+    implicit def bodyEncoder: Encoder[(Int, Double, Material, String)] = ExpressionEncoder.tuple(
       Encoders.INT.asInstanceOf[ExpressionEncoder[Int]],
       Encoders.DOUBLE.asInstanceOf[ExpressionEncoder[Double]],
       MyEncoders.materialEncoder,
-      Encoders.STRING.asInstanceOf[ExpressionEncoder[String]],
-      MyEncoders.scalaLocalDateTime
+      Encoders.STRING.asInstanceOf[ExpressionEncoder[String]]
     )
 
-    val schema = StructType
-    val data = spark.read.format("csv")
+    val ds = spark.read.format("csv")
       .option("header", "true")
       .option("inferSchema", "true")
       .load("src/main/resources/sample.csv")
-      .as[(Int, Double, Material, String, LocalDateTime)]
-      .filter(t => t._3 == Glass)
+      .as[(Int, Double, Material, String)]
+    ds.show(false)
 
-    data.persist()
+    ds.filter(t => t._3 == Glass).show(false)
 
-    val result = data
-    result.show()
-    s"total: ${result.count()} of ${result.toString()}"
+    ds.show(false)
+    s"total: ${ds.count()} of ${ds.toString()}"
   }
 
   def testEnum(spark: SparkSession): Future[String] = Future {
@@ -60,5 +57,20 @@ class SparkExecutor(implicit executionContext: ExecutionContext) {
     ).toDS().filter(_.isBefore(LocalDateTime.now()))
     ds.show(false)
     ds.toString()
+
+    val dss = Seq(
+      "2017-01-01T01:01:00.000",
+      "2017-01-01T02:02:00.000",
+      "2017-01-01T02:02:00.000"
+    ).toDS().as[LocalDateTime].filter(_.isBefore(LocalDateTime.parse("2017-01-01T02:02:00.000")))
+
+    dss.show()
+    dss.toString()
+  }
+
+  def showLogs(spark: SparkSession): Future[String] = Future {
+    val enc = Encoders.TIMESTAMP.asInstanceOf[ExpressionEncoder[Timestamp]]
+    val my = MyEncoders.scalaLocalDateTime
+    "OK"
   }
 }

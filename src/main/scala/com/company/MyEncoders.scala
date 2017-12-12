@@ -6,7 +6,7 @@ import com.company.model.{Material, Materials}
 import org.apache.spark.sql.catalyst.analysis.GetColumnByOrdinal
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, StaticInvoke}
-import org.apache.spark.sql.catalyst.expressions.{BoundReference, CreateNamedStruct, Expression, Literal}
+import org.apache.spark.sql.catalyst.expressions.{BoundReference, CreateNamedStruct, Expression, Literal, UpCast}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -26,17 +26,17 @@ object MyEncoders {
       Invoke(inputObject, "toString", ObjectType(classOf[String])) :: Nil
     )
 
-    val serializer = CreateNamedStruct(Literal("material") :: converter :: Nil)
+    val serializer = CreateNamedStruct(Literal("value") :: converter :: Nil)
 
     val deserializer: Expression = StaticInvoke(
       Materials.getClass,
       ObjectType(clazz),
       "apply",
-      Invoke(GetColumnByOrdinal(0, serializer.dataType), "toString", ObjectType(classOf[String])) :: Nil)
+      Invoke(UpCast(GetColumnByOrdinal(0, StringType), StringType, "- root class: com.company.model.Material" :: Nil), "toString", ObjectType(classOf[String])) :: Nil)
 
     new ExpressionEncoder[Material](
       serializer.dataType,
-      flat = false,
+      flat = true,
       serializer.flatten,
       deserializer,
       classTag[Material]
@@ -55,17 +55,17 @@ object MyEncoders {
       Invoke(inputObject, "toString", ObjectType(classOf[String])) :: Nil
     )
 
-    val serializer = CreateNamedStruct(Literal("ts") :: converter :: Nil)
+    val serializer = CreateNamedStruct(Literal("value") :: converter :: Nil)
 
     val deserializer: Expression = StaticInvoke(
       clazz,
       ObjectType(clazz),
       "parse",
-      Invoke(GetColumnByOrdinal(0, serializer.dataType), "toString", ObjectType(classOf[String])) :: Nil)
+      Invoke(UpCast(GetColumnByOrdinal(0, StringType), StringType, "- root class: java.time.LocalDateTime" :: Nil), "toString", ObjectType(classOf[String])) :: Nil)
 
     new ExpressionEncoder[LocalDateTime](
       serializer.dataType,
-      flat = false,
+      flat = true,
       serializer.flatten,
       deserializer,
       classTag[LocalDateTime]
