@@ -39,13 +39,6 @@ class RootRouter(spark: SparkSession)(implicit executionContext: ExecutionContex
             logger.error("Error while processing LocalDateTime", e)
             complete(StatusCodes.InternalServerError, e.toString)
         }
-      } ~ path("spark" / "enum") {
-        onComplete(executor.testEnum(spark)) {
-          case Success(s) => complete(StatusCodes.OK, s)
-          case Failure(e) =>
-            logger.error("Error while processing raw Enum", e)
-            complete(StatusCodes.InternalServerError, e.toString)
-        }
       }
     }
 }

@@ -15,8 +15,6 @@ object Main extends LazyLogging {
     implicit val executor: ExecutionContext = actorSystem.dispatcher
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-
-
     try {
       val config = ConfigFactory.load()
       val spark = SparkSession.builder

@@ -35,19 +35,6 @@ class SparkExecutor(implicit executionContext: ExecutionContext) {
       .collect().toList.toString()
   }
 
-  def testEnum(spark: SparkSession): Future[String] = Future {
-    import com.company.MyEncoders._
-    import spark.implicits._
-    val ds = Seq(
-      Glass,
-      Wood,
-      Glass,
-      Metal
-    ).toDS().filter(_ == Glass)
-    ds.show()
-    ds.collect().toList.toString()
-  }
-
   def testLocalDateTime(spark: SparkSession): Future[String] = Future {
     import com.company.MyEncoders._
     import spark.implicits._
