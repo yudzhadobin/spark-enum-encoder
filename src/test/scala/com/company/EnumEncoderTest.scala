@@ -6,7 +6,7 @@ import org.scalatest.{BeforeAndAfter, Matchers, WordSpec}
 import com.company.MyEncoders._
 import com.company.model.Material
 
-class PlainEncoderTest extends WordSpec with Matchers with BeforeAndAfter {
+class EnumEncoderTest extends WordSpec with Matchers with BeforeAndAfter {
 
   private val master = "local[2]"
   private val app = "spark-test-encoders"

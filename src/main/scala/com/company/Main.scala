@@ -18,8 +18,8 @@ object Main extends LazyLogging {
     try {
       val config = ConfigFactory.load()
       val spark = SparkSession.builder
-        .appName("Simple Application")
-        .config("spark.master", "local")
+        .appName("spark-encoding")
+        .config("spark.master", "local[2]")
         .getOrCreate()
 
       val router = new RootRouter(spark)
