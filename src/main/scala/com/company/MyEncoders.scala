@@ -3,6 +3,7 @@ package com.company
 import java.time.LocalDateTime
 
 import com.company.model._
+import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.analysis.{GetColumnByOrdinal, UnresolvedAttribute, UnresolvedExtractValue}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.objects.{Invoke, NewInstance, StaticInvoke}
@@ -10,6 +11,7 @@ import org.apache.spark.sql.catalyst.expressions.{BoundReference, CreateNamedStr
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
+import reflect.runtime.universe._
 import scala.reflect._
 
 object MyEncoders {
@@ -70,8 +72,9 @@ object MyEncoders {
     )
   }
 
-  def caseClass[T <: Product : ClassTag](encoders: Seq[ExpressionEncoder[_]]): ExpressionEncoder[T] = {
+  def caseClass[T <: Product : TypeTag : ClassTag](encoders: Seq[ExpressionEncoder[_]]): ExpressionEncoder[T] = {
     encoders.foreach(_.assertUnresolved())
+    val fields = ScalaReflection.getConstructorParameters(typeTag[T].tpe).map(_._1).toList
 
     val schema = StructType(encoders.zipWithIndex.map {
       case (e, i) =>
@@ -80,7 +83,7 @@ object MyEncoders {
         } else {
           e.schema -> true
         }
-        StructField(s"_${i + 1}", dataType, nullable)
+        StructField(fields(i), dataType, nullable)
     })
 
     val cls = classTag[T].runtimeClass
@@ -89,7 +92,7 @@ object MyEncoders {
       val originalInputObject = enc.serializer.head.collect { case b: BoundReference => b }.head
       val newInputObject = Invoke(
         BoundReference(0, ObjectType(cls), nullable = true),
-        s"_${index + 1}",
+        fields(index),
         originalInputObject.dataType)
 
       val newSerializer = enc.serializer.map(_.transformUp {

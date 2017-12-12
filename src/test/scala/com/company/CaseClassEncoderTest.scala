@@ -103,4 +103,26 @@ class CaseClassEncoderTest extends WordSpec with Matchers with BeforeAndAfter {
       Body(3, 3.0, Metal, null)
     ))
   }
+
+  "case class loop test" in {
+    val ss = spark
+    import ss.implicits._
+
+    val ds = spark.read.format("csv")
+      .option("header", "true")
+      .option("inferSchema", "true")
+      .load("src/test/resources/sample.csv")
+      .as[Body]
+    //ds.show()
+    ds
+      .collect()
+      .toSeq
+      .toDS
+      .filter(_.id > 0)
+      .collect() should be (Seq(
+      Body(1, 1.0, Wood, Red),
+      Body(2, 2.0, Glass, Green),
+      Body(3, 3.0, Metal, Blue)
+    ))
+  }
 }
