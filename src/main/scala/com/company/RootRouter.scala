@@ -24,6 +24,15 @@ class RootRouter(spark: SparkSession)(implicit executionContext: ExecutionContex
               complete(StatusCodes.InternalServerError, e.toString)
           }
         }
+      } ~ get {
+        path("text") {
+          onComplete(executor.calculateWords(spark)) {
+            case Success(s) => complete(StatusCodes.OK, s)
+            case Failure(e) =>
+              logger.error("Error while processing CSV", e)
+              complete(StatusCodes.InternalServerError, e.toString)
+          }
+        }
       }
     }
   }

@@ -3,6 +3,7 @@ package com.company
 import java.time.LocalDateTime
 
 import com.company.model._
+import org.apache.spark.sql.Encoder
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.analysis.{GetColumnByOrdinal, UnresolvedAttribute, UnresolvedExtractValue}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
@@ -163,6 +164,45 @@ object MyEncoders {
       serializer.flatten,
       deserializer,
       classTag[LocalDateTime]
+    )
+  }
+
+  implicit def listEncoder[T : TypeTag : ClassTag]: ExpressionEncoder[Seq[T]] = ExpressionEncoder[Seq[T]]()
+
+  implicit def colorListEncoder = listEncoder[Color]
+  implicit def materialListEncoder = listEncoder[Material]
+
+}
+
+object EncodersBuilder {
+
+  def encoder1[T: Encoder, R <: Product: TypeTag: ClassTag](build: T => R): Encoder[R] = {
+    MyEncoders.caseClass[R](
+      Seq(
+        implicitly[Encoder[T]].asInstanceOf[ExpressionEncoder[_]]
+      )
+    )
+  }
+
+  def encoder2[P1: Encoder, P2: Encoder, R <: Product: TypeTag: ClassTag]
+  (build: (P1, P2) => R): ExpressionEncoder[R] = {
+    MyEncoders.caseClass[R](
+      Seq(
+        implicitly[Encoder[P1]].asInstanceOf[ExpressionEncoder[_]],
+        implicitly[Encoder[P2]].asInstanceOf[ExpressionEncoder[_]]
+      )
+    )
+  }
+
+  def encoder4[P1: Encoder, P2: Encoder, P3: Encoder, P4: Encoder,  R <: Product: TypeTag: ClassTag]
+  (build: (P1, P2, P3, P4) => R): ExpressionEncoder[R] = {
+    MyEncoders.caseClass[R](
+      Seq(
+        implicitly[Encoder[P1]].asInstanceOf[ExpressionEncoder[_]],
+        implicitly[Encoder[P2]].asInstanceOf[ExpressionEncoder[_]],
+        implicitly[Encoder[P3]].asInstanceOf[ExpressionEncoder[_]],
+        implicitly[Encoder[P4]].asInstanceOf[ExpressionEncoder[_]]
+      )
     )
   }
 }
